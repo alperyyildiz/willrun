@@ -20,7 +20,7 @@ from statsmodels.tsa.seasonal import seasonal_decompose, STL, DecomposeResult
 from sklearn.model_selection import GridSearchCV
 from hyperopt import fmin, tpe, hp, STATUS_OK, base,Trials
 #cuda = torch.device('cuda')
-
+os.getcwd()
 print('IMPORTS ARE DONE!!!')
 
 
