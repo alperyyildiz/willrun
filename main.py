@@ -73,11 +73,11 @@ class PARAMETERS():
         if OTHERS is None:
             OTHERS  =  {
                             'windowlength': 24,
-                            'out_size': 3,
+                            'out_size': 4,
                             'period': 24,
-                            'lrate': 0.0003,
-                            'batchsize': 32,
-                            'epoch': 101
+                            'lrate': 0.003,
+                            'batchsize': 16,
+                            'epoch': 201
                             }
         return OTHERS
         
@@ -95,17 +95,17 @@ class PARAMETERS():
 
             OTHERS = self.GET_OTHERS()
             self.DICT = {'CONV': {
-                                    '1': {'FIL': 128, 
+                                    '1': {'FIL': 64, 
                                           'KER': 8,
                                           'dropout': [True, 0.5],
-                                          'batchnorm': True,
+                                          'batchnorm': False,
                                           'activation_function': [True, 'relu']
                                         },
                                     
-                                    '2': {'FIL': 64, 
+                                    '2': {'FIL': 48, 
                                           'KER': 4,
                                           'dropout': [True, 0.2],
-                                          'batchnorm': True,
+                                          'batchnorm': False,
                                           'activation_function': [True, 'relu']
                                         }
                                   },
@@ -114,11 +114,15 @@ class PARAMETERS():
             
                       'DENSE': {
                       
-                                '1': {'FIL': 48,
-                                      'dropout' : [True,0.3],
+                                '1': {'FIL': 128,
+                                      'dropout' : [True,0.6],
                                       'activation_function': [True, 'relu']
                                     },
-                                '2': {'FIL':OTHERS['out_size'],
+                                '2': {'FIL': 32,
+                                      'dropout' : [True,0.4],
+                                      'activation_function': [True, 'relu']
+                                    },
+                                '3': {'FIL':OTHERS['out_size'],
                                       'dropout' : [False,0],
                                       'activation_function': [False, '-']
                                       }
@@ -158,18 +162,18 @@ class PARAMETERS():
             PARAMS_TO_CHANGE = {'CONV': {
                                           '1': {
                                                 'KER': (2,8),
-                                                'dropout': (0.2, 0.4),
+                                                'dropout': (0.4, 0.8),
                                               },
 
                                           '2': { 
                                                 'KER': (2,8),
-                                                'dropout': (0.2, 0.4),
+                                                'dropout': (0.4, 0.8),
                                               }
                                                     },
                               'DENSE': {
 
-                                          '1': {'FIL': (32,256),
-                                                'dropout' : (0.2,0.3)
+                                          '1': {'FIL': (32,128),
+                                                'dropout' : (0.4,0.8)
                                                 }
                                           }
                               }
@@ -236,8 +240,6 @@ class PARAMETERS():
                     plot_header = plot_header + PARAM + '=' + str(DDD[KEY][LAYER][PARAM])[:5] + '   '
             plot_header = plot_header + '\n'
         return save_DIR, plot_header
-
-
     
     #SAVE CONSTANT HYPERPARAMETERS OF EXPERIMENT AS TXT
     def WRITE_CONSTANTS(self):
@@ -323,20 +325,21 @@ class PARAMETERS():
         arr = np.asarray(data['sales'])
         vv =pd.read_csv('vix.csv',sep=',')
 
-        vix = np.array(vv['Şimdi'])
+        vix_inv = np.array(vv['Price'])
+        vix = np.zeros(len(vix_inv))
         for i in range(len(vix)):
-            vix[i] = float(vix[i].replace(',','.'))
+            vix[len(vix_inv) - i-1] = vix_inv[i]
 
         dol =pd.read_csv('dollar.csv',sep=',')
-        dollars = np.array(dol['Şimdi'])
-        for i in range(len(dollars)):
-            dollars[i] = float(dollars[i].replace(',','.'))
-            
+        dollar_inv = np.array(dol['Price'])
+
+        dollars = np.zeros(len(dollar_inv)-1)
+        for i in range(1,len(dollars)):
+            dollars[len(dollar_inv) - i-1] = dollar_inv[i]
             
         res = STL(arr,period = self.DICT['OTHERS']['1']['period'] ,seasonal = 23 , trend = 25).fit()
         observed = res.observed
-        a = np.concatenate([np.array(res.observed).reshape(res.observed.shape[0],1),np.array(res.seasonal).reshape(observed.shape[0],1),np.array(res.trend).reshape(observed.shape[0],1),np.array(res.resid).reshape(observed.shape[0],1).reshape(observed.shape[0],1),np.array(vix).reshape(observed.shape[0],1),np.array(dollars).reshape(observed.shape[0],1)],axis=1)
-        dataz = np.swapaxes(np.array([res.observed,res.seasonal,res.trend,res.resid,vix,dollars]),0,1)
+        dataz = np.swapaxes(np.array([res.seasonal,res.trend,res.resid,vix,dollars]),0,1)
         train = dataz[:split]
         test = dataz[split:]
                 
@@ -587,4 +590,4 @@ def SET_EXPERIMENT(PARAMS_TO_CHANGE=None):
     best = fmin(fn=P_OBJ.GET_MODEL,
                 space=P_OBJ.space,
                 algo=tpe.suggest,
-                max_evals=3)
+                max_evals=100)
