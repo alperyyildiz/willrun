@@ -75,7 +75,7 @@ class PARAMETERS():
                             'windowlength': 24,
                             'out_size': 4,
                             'period': 24,
-                            'lrate': 0.003,
+                            'lrate': 0.0005,
                             'batchsize': 16,
                             'epoch': 201
                             }
@@ -161,12 +161,12 @@ class PARAMETERS():
               
             PARAMS_TO_CHANGE = {'CONV': {
                                           '1': {
-                                                'KER': (2,8),
+                                                'KER': (2,14),
                                                 'dropout': (0.4, 0.8),
                                               },
 
                                           '2': { 
-                                                'KER': (2,8),
+                                                'KER': (2,11),
                                                 'dropout': (0.4, 0.8),
                                               }
                                                     },
@@ -590,4 +590,4 @@ def SET_EXPERIMENT(PARAMS_TO_CHANGE=None):
     best = fmin(fn=P_OBJ.GET_MODEL,
                 space=P_OBJ.space,
                 algo=tpe.suggest,
-                max_evals=100)
+                max_evals=10)
