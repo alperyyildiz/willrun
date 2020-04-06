@@ -586,4 +586,5 @@ def SET_EXPERIMENT(PARAMS_TO_CHANGE=None):
                 space=P_OBJ.space,
                 algo=tpe.suggest,
                 max_evals=3)
+    print('NEDEEEEEN')
     SET_EXPERIMENT()
