@@ -184,8 +184,9 @@ class PARAMETERS():
 
         first_Con = True
         SAVE_DIR = ''
+        repopath = os.getcwd()
         try:
-            os.mkdir('/storage')
+            os.mkdir(repopath + '/storage')
         except:
             pass
         for KEY in list(self.DICT.keys()):
@@ -193,7 +194,7 @@ class PARAMETERS():
                 SAVE_DIR = SAVE_DIR + '_' +KEY + '-'
                 for LAYER in list(self.DICT[KEY].keys()):
                     SAVE_DIR = SAVE_DIR + LAYER + '-'
-        SAVE_DIR = '/storage/' + SAVE_DIR
+        SAVE_DIR = repopath + '/storage/' + SAVE_DIR
         try: 
             os.mkdir(SAVE_DIR)
             self.SAVE_DIR = SAVE_DIR
