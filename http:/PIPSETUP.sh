@@ -1,0 +1,11 @@
+pip install numpy
+pip install pandas
+pip install torch
+pip install visdom
+pip install matplotlib
+pip install xlrd
+pip install scikit-learn
+pip install time
+pip install statsmodels
+pip install hyperopt
+pip install pickle-mixin
