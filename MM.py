@@ -313,19 +313,19 @@ class PARAMETERS():
 
 
     def preprocess(self,split):
-        data = pd.read_excel('/workspace/willrun/clean.xlsx').dropna()
+        data = pd.read_excel('/willrun/clean.xlsx').dropna()
         print('welldone')
         windowlength = self.DICT['OTHERS']['1']['windowlength']
         outsize = self.DICT['OTHERS']['1']['out_size']
         arr = np.asarray(data['sales'])
-        vv =pd.read_csv('/workspace/willrun/vix.csv',sep=',')
+        vv =pd.read_csv('/willrun/vix.csv',sep=',')
 
         vix_inv = np.array(vv['Price'])
         vix = np.zeros(len(vix_inv))
         for i in range(len(vix)):
             vix[len(vix_inv) - i-1] = vix_inv[i]
 
-        dol =pd.read_csv('/workspace/willrun/dollar.csv',sep=',')
+        dol =pd.read_csv('/willrun/dollar.csv',sep=',')
         dollar_inv = np.array(dol['Price'])
 
         dollars = np.zeros(len(dollar_inv)-1)
