@@ -313,12 +313,12 @@ class PARAMETERS():
 
 
     def preprocess(self,split):
-        data = pd.read_excel('/willrun/clean.xlsx').dropna()
+        data = pd.read_excel('clean.xlsx').dropna()
         print('welldone')
         windowlength = self.DICT['OTHERS']['1']['windowlength']
         outsize = self.DICT['OTHERS']['1']['out_size']
         arr = np.asarray(data['sales'])
-        vv =pd.read_csv('/willrun/vix.csv',sep=',')
+        vv =pd.read_csv('vix.csv',sep=',')
 
         vix_inv = np.array(vv['Price'])
         vix = np.zeros(len(vix_inv))
@@ -572,15 +572,25 @@ class Model(nn.Module, PARAMETERS):
 
 
 def SET_EXPERIMENT(PARAMS_TO_CHANGE=None):
+    print('hi')
     global P_OBJ
     P_OBJ = PARAMETERS()
+
+    print('PARAM DEFINED')
     P_OBJ.EXPERIMENT_NUMBER = 1
     P_OBJ.GET_DICT()
+    print('DICT DEFINED')
     P_OBJ.GET_PARAMS_TO_CHANGE()
+    print('PARAM_TO_CHANE DEFINED')
     P_OBJ.CREATE_SEARCH_SPACE()
+    print('SPACE DEFINED')
     P_OBJ.CREATE_DIR()
+    print('DIR CREATED')
     P_OBJ.WRITE_CONSTANTS()
+    print('CONST_WRITTEN')
+
     P_OBJ.preprocess(split=220)
+    print('PREPROCESS run')
 
     print(P_OBJ.DICT)
     best = fmin(fn=P_OBJ.GET_MODEL,
