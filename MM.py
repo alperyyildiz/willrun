@@ -325,7 +325,7 @@ class PARAMETERS():
         for i in range(len(vix)):
             vix[len(vix_inv) - i-1] = vix_inv[i]
 
-        dol =pd.read_csv('/willrun/dollar.csv',sep=',')
+        dol =pd.read_csv('dollar.csv',sep=',')
         dollar_inv = np.array(dol['Price'])
 
         dollars = np.zeros(len(dollar_inv)-1)
