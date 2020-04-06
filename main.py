@@ -591,3 +591,6 @@ def SET_EXPERIMENT(PARAMS_TO_CHANGE=None):
                 space=P_OBJ.space,
                 algo=tpe.suggest,
                 max_evals=10)
+
+    SET_EXPERIMENT()
+   
