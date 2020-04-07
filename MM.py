@@ -433,16 +433,16 @@ class PARAMETERS():
         self.eval()
         with torch.no_grad():
            pred = self(inp)
-        pred.cpu()
-        out.cpu()
-        pred = SCALERR.inverse_transform(pred)
-        out = SCALERR.inverse_transform(out)
+        pred1 = pred.cpu()
+        out1 = out.cpu()
+        pred1 = SCALERR.inverse_transform(pred1)
+        out1 = SCALERR.inverse_transform(out1)
         fig = plt.figure(figsize=(12, 6))
         ax1, ax2,  = fig.subplots(2, 1, )
         bisi = out.shape[0]
         for i in range(int(bisi/2)):
-            ax1.plot(timez[i],pred[i])
-            ax1.plot(timez[i],out[i],color='black')
+            ax1.plot(timez[i],pred1[i])
+            ax1.plot(timez[i],out1[i],color='black')
 
         for i in range(int(bisi/2)+1,2*int(bisi/2)):
 
