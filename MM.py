@@ -73,7 +73,7 @@ class PARAMETERS():
                             'windowlength': 24,
                             'out_size': 4,
                             'period': 24,
-                            'lrate': 0.003,
+                            'lrate': 0.0006,
                             'batchsize': 16,
                             'epoch': 201
                             }
@@ -314,10 +314,11 @@ class PARAMETERS():
 
 
     def preprocess(self,split):
+        global SCALERR
         data = pd.read_excel('clean.xlsx').dropna()
         print('welldone')
-        windowlength = self.DICT['OTHERS']['1']['windowlength']
-        outsize = self.DICT['OTHERS']['1']['out_size']
+        windowlength = 24
+        outsize = 4
         arr = np.asarray(data['sales'])
         vv =pd.read_csv('vix.csv',sep=',')
 
@@ -333,20 +334,29 @@ class PARAMETERS():
         for i in range(1,len(dollars)):
             dollars[len(dollar_inv) - i-1] = dollar_inv[i]
             
-        res = STL(arr,period = self.DICT['OTHERS']['1']['period'] ,seasonal = 23 , trend = 25).fit()
-        observed = res.observed
+        res = STL(arr,period = 24 ,seasonal = 23 , trend = 25).fit()
+
         dataz = np.swapaxes(np.array([res.seasonal,res.trend,res.resid,vix,dollars]),0,1)
         train = dataz[:split]
         test = dataz[split:]
-                
-        MAX_window = self.DICT['OTHERS']['1']['windowlength']
+        TR_OUT_VAL = arr[:split]
+        TST_OUT_VAL = arr[split:]                 
+        MAX_window = 24
         scaler = StandardScaler()
         sclr = scaler.fit(train)
         train =  scaler.transform(train)
         test =  scaler.transform(test)
-        
-        self.scaler.fit(arr[:split].reshape(-1,1))
-        TR_OUT = np.asarray([[np.array(train[:,0])[i+k+windowlength] for i in range(outsize)] for k in range(split - outsize - MAX_window)])
+
+        del scaler
+
+        SCALERR = StandardScaler()
+        SCALERR = SCALERR.fit(TR_OUT_VAL.reshape(-1,1))
+        TR_OUT_NORM =  SCALERR.transform(TR_OUT_VAL.reshape(-1,1)).reshape(split)
+        TST_OUT_NORM =  SCALERR.transform(TST_OUT_VAL.reshape(-1,1)).reshape(len(arr)-split)
+
+        TR_OUT = np.asarray([[TR_OUT_NORM[i+k+windowlength] for i in range(outsize)] for k in range(split - outsize - MAX_window)])
+        TST_OUT = np.asarray([[TST_OUT_NORM[i+k+windowlength] for i in range(outsize)] for k in range(len(arr) - split - outsize - windowlength)])
+
         for feat in range(train.shape[1]):
             if feat == 0:
                 TR_INP = np.array([[[ np.array(train[:,feat])[i+k+MAX_window-windowlength] for i in  range(windowlength)] for t in range(1)] for k in range(split - outsize - MAX_window)])
@@ -354,7 +364,6 @@ class PARAMETERS():
                 TR_new = np.array([[[ np.array(train[:,feat])[i+k+MAX_window-windowlength] for i in  range(windowlength)] for t in range(1)] for k in range(split - outsize - MAX_window)])
                 TR_INP = np.concatenate((TR_INP,TR_new),axis=1)
 
-        TST_OUT = np.asarray([[np.array(test[:,0])[i+k+windowlength] for i in range(outsize)] for k in range(len(arr) - split - outsize - windowlength)])
         for feat in range(test.shape[1]):
             if feat == 0:
                 TST_INP = np.array([[[ np.array(test[:,feat])[i+k+MAX_window-windowlength] for i in  range(windowlength)] for t in range(1)] for k in range(len(arr) - split - outsize - MAX_window)])
@@ -362,28 +371,23 @@ class PARAMETERS():
                 TST_new = np.array([[[ np.array(test[:,feat])[i+k+MAX_window-windowlength] for i in  range(windowlength)] for t in range(1)] for k in range(len(arr) - split - outsize - MAX_window)])
                 TST_INP = np.concatenate((TST_INP,TST_new),axis=1)
 
-        #TR_INP = np.swapaxes(TR_INP,1,2)
-        #TST_INP = np.swapaxes(TST_INP,1,2)
-        self.pagez = test.shape[0]-outsize-windowlength
-        self.test_actual = self.scaler.inverse_transform(TST_OUT)
+        TR_INP = torch.Tensor(TR_INP).to(device = cuda)
+        TST_INP = torch.Tensor(TST_INP).to(device = cuda)
+        TR_OUT = torch.Tensor(TR_OUT).to(device = cuda)
+        TST_OUT = torch.Tensor(TST_OUT).to(device = cuda)
+
+
+        TRA_DSet = TensorDataset(TR_INP, TR_OUT)
+        VAL_DSet = TensorDataset(TST_INP, TST_OUT)
         self.featuresize = TR_INP.shape[1]
-        
-        
-        TR_INP = torch.Tensor(TR_INP)#.to(device = cuda)
-        TST_INP = torch.Tensor(TST_INP)#.to(device = cuda)
-        TR_OUT = torch.Tensor(TR_OUT)#.to(device = cuda)
-        TST_OUT = torch.Tensor(TST_OUT)#.to(device = cuda)
         self.TST_INP = TST_INP
         self.TST_OUT = TST_OUT
         self.TR_INP = TR_INP
         self.TR_OUT = TR_OUT
 
-
-        TRA_DSet = TensorDataset(TR_INP, TR_OUT)
-        VAL_DSet = TensorDataset(TST_INP, TST_OUT)
         self.train_DL = DataLoader(TRA_DSet, batch_size=self.DICT['OTHERS']['1']['batchsize'])
         self.val_DL = DataLoader(VAL_DSet, batch_size=self.DICT['OTHERS']['1']['batchsize']*2)
-        
+
         
     def GET_MODEL(self,DD):
         print(DD)
@@ -412,13 +416,13 @@ class PARAMETERS():
         os.mkdir(self.TRIAL_DIR)
 
         model = Model(self.DICT,self.LIST, self.DICT['OTHERS']['1'], self.scaler, self.train_DL, self.val_DL,self.SAVE_DIR,self.EXPERIMENT_NUMBER,self.TRIAL_DIR)
-        #model#.to(device = cuda)
+        model.to(device = cuda)
         model.optimizer = optim.Adam(model.parameters(),lr=self.DICT['OTHERS']['1']['lrate'])
         
         minloss = model.fit()
         print(dir(model))
         model.SAVE_PLOTS(DD)
-        #torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
         P_OBJ.EXPERIMENT_NUMBER = P_OBJ.EXPERIMENT_NUMBER + 1
         return {
             'loss': minloss,
@@ -440,8 +444,8 @@ class PARAMETERS():
         self.eval()
         with torch.no_grad():
            pred = self(inp)
-        pred = self.scaler.inverse_transform(pred)
-        out = self.scaler.inverse_transform(out)
+        pred = SCALERR.inverse_transform(pred)
+        out = SCALERR.inverse_transform(out)
         fig = plt.figure(figsize=(12, 6))
         ax1, ax2,  = fig.subplots(2, 1, )
         bisi = out.shape[0]
@@ -581,7 +585,7 @@ def SET_EXPERIMENT(PARAMS_TO_CHANGE=None):
     P_OBJ.EXPERIMENT_NUMBER = 1
     P_OBJ.GET_DICT()
     print('DICT DEFINED')
-    P_OBJ.GET_PARAMS_TO_CHANGE()
+    P_OBJ.GET_PARAMS_TO_CHANGE({'OTHERS':{'1':{'lrate':(0.003,0.0003)}}})
     print('PARAM_TO_CHANE DEFINED')
     P_OBJ.CREATE_SEARCH_SPACE()
     print('SPACE DEFINED')
@@ -597,6 +601,6 @@ def SET_EXPERIMENT(PARAMS_TO_CHANGE=None):
     best = fmin(fn=P_OBJ.GET_MODEL,
                 space=P_OBJ.space,
                 algo=tpe.suggest,
-                max_evals=3)
+                max_evals=20)
     print('NEDEEEEEN')
 SET_EXPERIMENT()
