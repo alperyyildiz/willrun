@@ -75,7 +75,7 @@ class PARAMETERS():
                             'period': 24,
                             'lrate': 0.003,
                             'batchsize': 32,
-                            'epoch': 250
+                            'epoch': 550
                             }
         return OTHERS
         
@@ -94,6 +94,12 @@ class PARAMETERS():
             OTHERS = self.GET_OTHERS()
             self.DICT = {'CONV': {
                                     '1': {'FIL': 64, 
+                                          'KER': 8,
+                                          'dropout': [True, 0.5],
+                                          'batchnorm': False,
+                                          'activation_function': [True, 'relu']
+                                        },
+                                    '2': {'FIL': 32, 
                                           'KER': 8,
                                           'dropout': [True, 0.5],
                                           'batchnorm': False,
@@ -151,6 +157,10 @@ class PARAMETERS():
                                           '1': {
                                                 'KER': (2,14),
                                                 'dropout': (0.2, 0.8)
+                                              },
+                                          '2': {
+                                                'KER': (2,11),
+                                                'dropout': (0.2, 0.8)
                                               }
                                         },
                                 
@@ -160,7 +170,7 @@ class PARAMETERS():
                                                 'dropout' : (0.2,0.8)
                                                 }
                                           },
-                              'OTHERS':{'1':{'lrate':(0.005,0.0005)}}
+                              'OTHERS':{'1':{'lrate':(0.01,0.0001)}}
                               }
         return PARAMS_TO_CHANGE
 
@@ -587,11 +597,9 @@ def SET_EXPERIMENT(PARAMS_TO_CHANGE=None):
 
     P_OBJ.preprocess(split=220)
     print('PREPROCESS run')
-
-    print(P_OBJ.DICT)
-    best = fmin(fn=P_OBJ.GET_MODEL,
-                space=P_OBJ.space,
-                algo=hyperopt.random.suggest,
-                max_evals=200)
-    print('NEDEEEEEN')
+    
+    for _ in range(500):
+        DDICT = hyperopt.pyll.stochastic.sample(space)
+        print(DDICT)
+        GET_MODEL(DDICT)
 SET_EXPERIMENT()
