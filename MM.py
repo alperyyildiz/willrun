@@ -446,8 +446,8 @@ class PARAMETERS():
 
         for i in range(int(bisi/2)+1,2*int(bisi/2)):
 
-            ax2.plot(timez[i],pred[i])
-            ax2.plot(timez[i],out[i],color='black')
+            ax2.plot(timez[i],pred1[i])
+            ax2.plot(timez[i],out1[i],color='black')
 
         return fig
 
