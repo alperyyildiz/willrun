@@ -73,9 +73,9 @@ class PARAMETERS():
                             'windowlength': 24,
                             'out_size': 4,
                             'period': 24,
-                            'lrate': 0.001,
-                            'batchsize': 16,
-                            'epoch': 501
+                            'lrate': 0.003,
+                            'batchsize': 32,
+                            'epoch': 250
                             }
         return OTHERS
         
@@ -98,13 +98,6 @@ class PARAMETERS():
                                           'dropout': [True, 0.5],
                                           'batchnorm': False,
                                           'activation_function': [True, 'relu']
-                                        },
-                                    
-                                    '2': {'FIL': 48, 
-                                          'KER': 4,
-                                          'dropout': [True, 0.2],
-                                          'batchnorm': False,
-                                          'activation_function': [True, 'relu']
                                         }
                                   },
             
@@ -112,7 +105,7 @@ class PARAMETERS():
             
                       'DENSE': {
                       
-                                '1': {'FIL': 128,
+                                '1': {'FIL': 64,
                                       'dropout' : [True,0.6],
                                       'activation_function': [True, 'relu']
                                     },
@@ -126,7 +119,7 @@ class PARAMETERS():
                       'OTHERS': {'1':OTHERS}
             }
             
-          
+            
     def CREATE_SEARCH_SPACE(self,TO_CHNG= None):
         #USES: GET_PARAMS_TO_CHANGE()
 
@@ -157,24 +150,17 @@ class PARAMETERS():
             PARAMS_TO_CHANGE = {'CONV': {
                                           '1': {
                                                 'KER': (2,14),
-                                                'dropout': (0.2, 0.8),
-                                              },
-
-                                          '2': { 
-                                                'KER': (2,11),
-                                                'dropout': (0.2, 0.8),
+                                                'dropout': (0.2, 0.8)
                                               }
-                                                    },
+                                        },
+                                
                               'DENSE': {
 
-                                          '1': {'FIL': (32,196),
+                                          '1': {'FIL': (32,128),
                                                 'dropout' : (0.2,0.8)
                                                 }
                                           },
-                              'OTHERS': {
-                                           '1':{ 'lrate': (0.003,0.0003)
-                                               }
-                                         }
+                              'OTHERS':{'1':{'lrate':(0.005,0.0005)}}
                               }
         return PARAMS_TO_CHANGE
 
@@ -309,8 +295,9 @@ class PARAMETERS():
                     if LAYER != 'flatten':
                         if PARAM[:7] != 'dropout':
                             if PARAM[:9] != 'batchnorm':
-                                DDD[KEY][LAYER][PARAM] = np.int(np.round(DDD[KEY][LAYER][PARAM]))
-                                print(PARAM)
+                                if PARAM[:5] != 'lrate':
+                                    DDD[KEY][LAYER][PARAM] = np.int(np.round(DDD[KEY][LAYER][PARAM]))
+                                    print(PARAM)
         return DDD
 
 
@@ -318,8 +305,8 @@ class PARAMETERS():
         global SCALERR
         data = pd.read_excel('clean.xlsx').dropna()
         print('welldone')
-        windowlength = 24
-        outsize = 4
+        windowlength = self.DICT['OTHERS']['1']['period']
+        outsize = self.DICT['OTHERS']['1']['out_size']
         arr = np.asarray(data['sales'])
         vv =pd.read_csv('vix.csv',sep=',')
 
@@ -335,14 +322,14 @@ class PARAMETERS():
         for i in range(1,len(dollars)):
             dollars[len(dollar_inv) - i-1] = dollar_inv[i]
             
-        res = STL(arr,period = 24 ,seasonal = 23 , trend = 25).fit()
+        res = STL(arr,period = period ,seasonal = 23 , trend = 25).fit()
 
         dataz = np.swapaxes(np.array([res.seasonal,res.trend,res.resid,vix,dollars]),0,1)
         train = dataz[:split]
         test = dataz[split:]
         TR_OUT_VAL = arr[:split]
         TST_OUT_VAL = arr[split:]                 
-        MAX_window = 24
+        MAX_window = windowlength
         scaler = StandardScaler()
         sclr = scaler.fit(train)
         train =  scaler.transform(train)
