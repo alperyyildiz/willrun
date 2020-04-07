@@ -433,6 +433,8 @@ class PARAMETERS():
         self.eval()
         with torch.no_grad():
            pred = self(inp)
+        pred.cpu()
+        out.cpu()
         pred = SCALERR.inverse_transform(pred)
         out = SCALERR.inverse_transform(out)
         fig = plt.figure(figsize=(12, 6))
