@@ -73,9 +73,9 @@ class PARAMETERS():
                             'windowlength': 24,
                             'out_size': 4,
                             'period': 24,
-                            'lrate': 0.0006,
+                            'lrate': 0.001,
                             'batchsize': 16,
-                            'epoch': 201
+                            'epoch': 501
                             }
         return OTHERS
         
@@ -116,11 +116,8 @@ class PARAMETERS():
                                       'dropout' : [True,0.6],
                                       'activation_function': [True, 'relu']
                                     },
-                                '2': {'FIL': 32,
-                                      'dropout' : [True,0.4],
-                                      'activation_function': [True, 'relu']
-                                    },
-                                '3': {'FIL':OTHERS['out_size'],
+
+                                '2': {'FIL':OTHERS['out_size'],
                                       'dropout' : [False,0],
                                       'activation_function': [False, '-']
                                       }
@@ -159,21 +156,25 @@ class PARAMETERS():
               
             PARAMS_TO_CHANGE = {'CONV': {
                                           '1': {
-                                                'KER': (2,8),
-                                                'dropout': (0.4, 0.8),
+                                                'KER': (2,14),
+                                                'dropout': (0.2, 0.8),
                                               },
 
                                           '2': { 
-                                                'KER': (2,8),
-                                                'dropout': (0.4, 0.8),
+                                                'KER': (2,11),
+                                                'dropout': (0.2, 0.8),
                                               }
                                                     },
                               'DENSE': {
 
-                                          '1': {'FIL': (32,128),
-                                                'dropout' : (0.4,0.8)
+                                          '1': {'FIL': (32,196),
+                                                'dropout' : (0.2,0.8)
                                                 }
-                                          }
+                                          },
+                              'OTHERS': {
+                                           '1':{ 'lrate': (0.003,0.0003)
+                                               }
+                                         }
                               }
         return PARAMS_TO_CHANGE
 
@@ -585,7 +586,7 @@ def SET_EXPERIMENT(PARAMS_TO_CHANGE=None):
     P_OBJ.EXPERIMENT_NUMBER = 1
     P_OBJ.GET_DICT()
     print('DICT DEFINED')
-    P_OBJ.GET_PARAMS_TO_CHANGE({'OTHERS':{'1':{'lrate':(0.003,0.0003)}}})
+    P_OBJ.GET_PARAMS_TO_CHANGE()
     print('PARAM_TO_CHANE DEFINED')
     P_OBJ.CREATE_SEARCH_SPACE()
     print('SPACE DEFINED')
@@ -601,6 +602,6 @@ def SET_EXPERIMENT(PARAMS_TO_CHANGE=None):
     best = fmin(fn=P_OBJ.GET_MODEL,
                 space=P_OBJ.space,
                 algo=tpe.suggest,
-                max_evals=20)
+                max_evals=200)
     print('NEDEEEEEN')
 SET_EXPERIMENT()
