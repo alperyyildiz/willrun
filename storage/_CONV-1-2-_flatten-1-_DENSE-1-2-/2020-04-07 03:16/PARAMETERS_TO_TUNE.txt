@@ -1,0 +1,17 @@
+
+
+ TYPE:   CONV
+
+LAYER:
+1 	---	KER: (2, 14) 		dropout: (0.2, 0.8) 		
+2 	---	KER: (2, 11) 		dropout: (0.2, 0.8) 		
+
+ TYPE:   DENSE
+
+LAYER:
+1 	---	FIL: (32, 128) 		dropout: (0.2, 0.8) 		
+
+ TYPE:   OTHERS
+
+LAYER:
+1 	---	lrate: (0.01, 0.0001) 		
