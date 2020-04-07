@@ -591,7 +591,7 @@ def SET_EXPERIMENT(PARAMS_TO_CHANGE=None):
     print(P_OBJ.DICT)
     best = fmin(fn=P_OBJ.GET_MODEL,
                 space=P_OBJ.space,
-                algo=atpe.suggest,
+                algo=hyperopt.random.suggest,
                 max_evals=200)
     print('NEDEEEEEN')
 SET_EXPERIMENT()
