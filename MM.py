@@ -305,7 +305,8 @@ class PARAMETERS():
         global SCALERR
         data = pd.read_excel('clean.xlsx').dropna()
         print('welldone')
-        windowlength = self.DICT['OTHERS']['1']['period']
+        windowlength = self.DICT['OTHERS']['1']['windowlength']
+        period = self.DICT['OTHERS']['1']['period']
         outsize = self.DICT['OTHERS']['1']['out_size']
         arr = np.asarray(data['sales'])
         vv =pd.read_csv('vix.csv',sep=',')
