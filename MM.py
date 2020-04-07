@@ -601,5 +601,5 @@ def SET_EXPERIMENT(PARAMS_TO_CHANGE=None):
     for _ in range(500):
         DDICT = hyperopt.pyll.stochastic.sample(P_OBJ.space)
         print(DDICT)
-        GET_MODEL(DDICT)
+        P_OBJ.GET_MODEL(DDICT)
 SET_EXPERIMENT()
