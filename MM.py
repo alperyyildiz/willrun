@@ -54,17 +54,21 @@ class PARAMETERS():
                                 if tttt is 0:
                                     p_list.append(prev_out_ch)       
                                 p_list.append(self.DICT[key][layer][param])
+                    if key == 'LSTM':
+                        self.LSTM_PARAMS = p_list
+                        print('lstm parameters are {}'.format(p_list))
                     self.LIST.append([key, p_list])
                     prev_out_ch = p_list[1]
 
                     if 'batchnorm' in list(self.DICT[key][layer].keys()):
                         if self.DICT[key][layer]['batchnorm'] is True:
                             self.LIST.append(['batchnorm',[prev_out_ch,True]])
-
-                    if self.DICT[key][layer]['dropout'][0] is True:
-                        self.LIST.append(['dropout', [False, False]])
+                    if key != 'LSTM':
+                        if self.DICT[key][layer]['dropout'][0] is True:
+                            self.LIST.append(['dropout', [self.DICT[key][layer]['dropout'][1], False]])
                     if self.DICT[key][layer]['activation_function'][0] is True:
                         self.LIST.append([self.DICT[key][layer]['activation_function'][1],[False,False]])
+                    
 
            
     def GET_OTHERS(self,OTHERS=None):
@@ -87,6 +91,8 @@ class PARAMETERS():
 
         try:
             _ = list(DICT.keys())
+            if len(_)>0:
+                self.DICT = DICT
         except:
     
     
@@ -94,19 +100,27 @@ class PARAMETERS():
             OTHERS = self.GET_OTHERS()
             self.DICT = {'CONV': {
                                     '1': {'FIL': 64, 
-                                          'KER': 8,
+                                          'KER': 4,
                                           'dropout': [True, 0.5],
                                           'batchnorm': False,
                                           'activation_function': [True, 'relu']
                                         },
                                     '2': {'FIL': 32, 
-                                          'KER': 8,
+                                          'KER': 4,
                                           'dropout': [True, 0.5],
                                           'batchnorm': False,
                                           'activation_function': [True, 'relu']
                                         }
                                   },
-            
+                        'LSTM': {
+                                    '1': {'FIL': 64, 
+                                          'dropout': [True, 0.5],
+                                          'batchnorm': False,
+                                          'activation_function': [True, 'relu'],
+                                          'num_of_directions': 1
+                                        }
+                        },
+
                       'flatten': {'1': {'nofilter':0 , 'nonothing':0 }},
             
                       'DENSE': {
@@ -124,7 +138,6 @@ class PARAMETERS():
                         
                       'OTHERS': {'1':OTHERS}
             }
-            
             
     def CREATE_SEARCH_SPACE(self,TO_CHNG= None):
         #USES: GET_PARAMS_TO_CHANGE()
@@ -155,22 +168,24 @@ class PARAMETERS():
               
             PARAMS_TO_CHANGE = {'CONV': {
                                           '1': {
-                                                'KER': (2,14),
+                                                
                                                 'dropout': (0.2, 0.8)
                                               },
                                           '2': {
-                                                'KER': (2,11),
+                                                
                                                 'dropout': (0.2, 0.8)
                                               }
                                         },
                                 
                               'DENSE': {
 
-                                          '1': {'FIL': (32,128),
+                                          '1': {
                                                 'dropout' : (0.2,0.8)
                                                 }
                                           },
-                              'OTHERS':{'1':{'lrate':(0.01,0.0001)}}
+                              'OTHERS':{'1':{'lrate':(0.001,0.0001),
+                                            }
+                                       }
                               }
         return PARAMS_TO_CHANGE
 
@@ -288,8 +303,8 @@ class PARAMETERS():
         fig.suptitle(plot_header)
         plt.plot(self.hist)
         plt.plot(self.hist_valid)
-        plt.plot(np.full(shape=(np.array(self.hist).shape[0]),fill_value=0.2),'--r')
-        plt.plot(np.full(shape=(np.array(self.hist).shape[0]),fill_value=0.3),'--b')
+        plt.plot(np.full(shape=(np.array(self.hist).shape[0]),fill_value=0.05),'--r')
+        plt.plot(np.full(shape=(np.array(self.hist).shape[0]),fill_value=0.8),'--b')
         plt.ylim((0.1,0.5))
         plt.savefig( self.SAVE_DIR + '/PLOTS/' + save_NAME + '.png')
         
@@ -311,10 +326,10 @@ class PARAMETERS():
         return DDD
 
 
+
     def preprocess(self,split):
         global SCALERR
         data = pd.read_excel('clean.xlsx').dropna()
-        print('welldone')
         windowlength = self.DICT['OTHERS']['1']['windowlength']
         period = self.DICT['OTHERS']['1']['period']
         outsize = self.DICT['OTHERS']['1']['out_size']
@@ -363,11 +378,13 @@ class PARAMETERS():
                 TR_new = np.array([[[ np.array(train[:,feat])[i+k+MAX_window-windowlength] for i in  range(windowlength)] for t in range(1)] for k in range(split - outsize - MAX_window)])
                 TR_INP = np.concatenate((TR_INP,TR_new),axis=1)
 
+        print(test.shape)
         for feat in range(test.shape[1]):
             if feat == 0:
-                TST_INP = np.array([[[ np.array(test[:,feat])[i+k+MAX_window-windowlength] for i in  range(windowlength)] for t in range(1)] for k in range(len(arr) - split - outsize - MAX_window)])
+                feat_arr = np.array(test[:,feat])
+                TST_INP = np.array([[[feat_arr[i+k+MAX_window-windowlength] for i in  range(windowlength)] for t in range(1)] for k in range(len(arr) - split - outsize - MAX_window)])
             else:
-                TST_new = np.array([[[ np.array(test[:,feat])[i+k+MAX_window-windowlength] for i in  range(windowlength)] for t in range(1)] for k in range(len(arr) - split - outsize - MAX_window)])
+                TST_new = np.array([[[ feat_arr[i+k+MAX_window-windowlength] for i in  range(windowlength)] for t in range(1)] for k in range(len(arr) - split - outsize - MAX_window)])
                 TST_INP = np.concatenate((TST_INP,TST_new),axis=1)
 
         TR_INP = torch.Tensor(TR_INP).to(device = cuda)
@@ -386,6 +403,7 @@ class PARAMETERS():
 
         self.train_DL = DataLoader(TRA_DSet, batch_size=self.DICT['OTHERS']['1']['batchsize'])
         self.val_DL = DataLoader(VAL_DSet, batch_size=self.DICT['OTHERS']['1']['batchsize']*2)
+
 
         
     def GET_MODEL(self,DD):
@@ -408,16 +426,16 @@ class PARAMETERS():
                     else:
                         self.DICT[KEY][layernum][PARAM_] = DD[KEY][layernum][PARAM]
         if call_data_again:
-            self.Preprocess(split=220)
+            self.preprocess(split=200)
         self.DICT_TO_LIST()
         SAVE_NAME, __ = P_OBJ.CREATE_SAVE_NAME(DD)
         self.TRIAL_DIR = self.SAVE_DIR + '/MODELS/' + SAVE_NAME
         os.mkdir(self.TRIAL_DIR)
 
-        model = Model(self.DICT,self.LIST, self.DICT['OTHERS']['1'], self.scaler, self.train_DL, self.val_DL,self.SAVE_DIR,self.EXPERIMENT_NUMBER,self.TRIAL_DIR)
+        model = Model(P_OBJ)
         model.to(device = cuda)
-        model.optimizer = optim.Adam(model.parameters(),lr=self.DICT['OTHERS']['1']['lrate'])
-        
+        model.optimizer = optim.Adam(model.parameters(),lr=self.DICT['OTHERS']['1']['lrate'],weight_decay = 0.001 )
+        repr(model)
         minloss = model.fit()
         print(dir(model))
         model.SAVE_PLOTS(DD)
@@ -429,11 +447,10 @@ class PARAMETERS():
             'attachments':
                 {'time_module': pickle.dumps(time.time)}
               }
-  
+
 
     def plotz(self):
 
-        #timereal = np.array([i for i in range(50)])
         timez = np.zeros((350,self.DICT['OTHERS']['1']['out_size']))
         for i in range(350):
             for j in range(self.DICT['OTHERS']['1']['out_size']):
@@ -461,33 +478,25 @@ class PARAMETERS():
 
         return fig
 
-print('PARAMETERS DEFINED !!!!')
 
 
 class Model(nn.Module, PARAMETERS):
-    def __init__(self, DICT,LIST, OTHERS, SCLR, TRAIN, VAL,SAVE_DIR, EXPERIMENT_NUMBER,TRIAL_DIR):
+    def __init__(self, SOURCE_OBJ):
         super().__init__()
-        self.SAVE_DIR = SAVE_DIR
-        self.TRIAL_DIR = TRIAL_DIR
-        self.scaler = StandardScaler()
-        self.LIST = LIST
-        self.DICT = DICT
-        self.OTHERS = OTHERS
-        self.epoch = self.OTHERS['epoch']
-        self.preprocess(split=216)
+        self.__dict__.update(SOURCE_OBJ.__dict__)
+        self.epoch = self.DICT['OTHERS']['1']['epoch']
         self.layers = nn.ModuleList()
         self.Loss_FUNC = F.mse_loss
-        self.EXPERIMENT_NUMBER = EXPERIMENT_NUMBER
 
         for elem in self.LIST:
             key = elem[0]
             args = elem[1]
             self.layer_add(key,*args)
-            
+        print(self)
         
     def layer_add(self,key,*args):
         self.layers.append(self.layer_set(key,*args))
-
+        self.init_hidden_states()
         
     def layer_set(self,key,*args):
         ## push args into key layer type, return it
@@ -509,9 +518,27 @@ class Model(nn.Module, PARAMETERS):
         elif key == 'OTHERS':
             pass
 
+    def init_hidden_states(self):
+        if self.LSTM_PARAMS[6]:
+            NUM_OF_DIRECTIONS = 2
+        else:
+            NUM_OF_DIRECTIONS = 1
+            
+        self.hidden = (torch.randn(self.LSTM_PARAMS[2] * NUM_OF_DIRECTIONS, self.DICT['OTHERS']['1']['batchsize'], self.LSTM_PARAMS[1]),
+                  torch.randn(self.LSTM_PARAMS[2] * NUM_OF_DIRECTIONS, self.DICT['OTHERS']['1']['batchsize'], self.LSTM_PARAMS[1]))
+
+
+
     def forward(self,x):
         for layer in self.layers:
-            x = layer(x)
+            if isinstance(layer, nn.LSTM):
+                batchsize , features , windowlength = x.shape
+                x = x.view(batchsize, windowlength , features)
+                x, self.hidden = layer(x,self.hidden)
+                batchsize, windowlength, features = x.shape
+                x = x.view(batchsize, features , windowlength)
+            else:
+                x = layer(x)
         return x
     
     
@@ -522,7 +549,6 @@ class Model(nn.Module, PARAMETERS):
             loss.backward()
             opt.step()
             opt.zero_grad()
-
         return loss.item(), len(TR_INP)
 
     def fit(self):
@@ -541,6 +567,7 @@ class Model(nn.Module, PARAMETERS):
                 count = count + 1
             train_loss = batch_loss / count
             self.hist.append(train_loss)
+
 
             self.eval()
             with torch.no_grad():
@@ -563,7 +590,7 @@ class Model(nn.Module, PARAMETERS):
 
             is_best = val_loss < BEST_LOSS
             BEST_LOSS = min(val_loss,BEST_LOSS)
-            #print('{}:   {}'.format(epoch,val_loss))
+            print('{}:   {}'.format(epoch,val_loss))
 
         return BEST_LOSS
       
@@ -578,28 +605,94 @@ class Model(nn.Module, PARAMETERS):
 
 
 def SET_EXPERIMENT(PARAMS_TO_CHANGE=None):
-    print('hi')
     global P_OBJ
     P_OBJ = PARAMETERS()
 
-    print('PARAM DEFINED')
     P_OBJ.EXPERIMENT_NUMBER = 1
     P_OBJ.GET_DICT()
-    print('DICT DEFINED')
     P_OBJ.GET_PARAMS_TO_CHANGE()
-    print('PARAM_TO_CHANE DEFINED')
     P_OBJ.CREATE_SEARCH_SPACE()
-    print('SPACE DEFINED')
     P_OBJ.CREATE_DIR()
-    print('DIR CREATED')
-    P_OBJ.WRITE_CONSTANTS()
-    print('CONST_WRITTEN')
 
-    P_OBJ.preprocess(split=220)
-    print('PREPROCESS run')
+    P_OBJ.WRITE_CONSTANTS()
+
+    P_OBJ.preprocess(split=200)
     
-    for _ in range(500):
-        DDICT = hyperopt.pyll.stochastic.sample(P_OBJ.space)
-        print(DDICT)
-        P_OBJ.GET_MODEL(DDICT)
-SET_EXPERIMENT()
+    best = fmin(fn=P_OBJ.GET_MODEL,
+            space=P_OBJ.space,
+            algo=tpe.suggest,
+            max_evals=50)
+def SINGLE_RUN():
+    OTHERS  =  {
+                    'windowlength': 24,
+                    'out_size': 3,
+                    'period': 24,
+                    'lrate': 0.0008,
+                    'batchsize': 4,
+                    'epoch': 250
+                    }
+
+    DICT =  {'CONV': {
+                        '1': {'FIL': 64, 
+                              'KER': 4,
+                              'dropout': [True, 0.5],
+                              'batchnorm': False,
+                              'activation_function': [True, 'relu']
+                            },
+                        '2': {'FIL': 32, 
+                              'KER': 4,
+                              'dropout': [True, 0.5],
+                              'batchnorm': False,
+                              'activation_function': [True, 'relu']
+                            }
+                      },
+            'LSTM': {
+                        '1': {'FIL': 64, 
+                              'batchnorm': False,
+                              'activation_function': [True, 'relu'],
+                              'num_of_layers': 2,
+                              'bias': True,
+                              'batch_first': True,
+                              'dropout_': 0.3,                      
+                              'bidirectional': False
+                            }
+            },
+
+          'flatten': {'1': {'nofilter':0 , 'nonothing':0 }},
+
+          'DENSE': {
+          
+                    '1': {'FIL': 64,
+                          'dropout' : [True,0.6],
+                          'activation_function': [True, 'relu']
+                        },
+
+                    '2': {'FIL':OTHERS['out_size'],
+                          'dropout' : [False,0],
+                          'activation_function': [False, '-']
+                          }
+                  },
+            
+          'OTHERS': {'1':OTHERS}
+}
+
+
+    global P_OBJ
+
+    P_OBJ = PARAMETERS()
+    P_OBJ.EXPERIMENT_NUMBER = 1
+    P_OBJ.GET_DICT(DICT)
+    P_OBJ.GET_PARAMS_TO_CHANGE({'OTHERS':{'1':{'batchsize':(2,16)}}})
+    P_OBJ.CREATE_SEARCH_SPACE()
+    P_OBJ.CREATE_DIR()
+
+    P_OBJ.WRITE_CONSTANTS()
+
+    P_OBJ.preprocess(split=200)
+
+    for x in range(1,17):
+        bs = x*2
+        P_OBJ.GET_MODEL({'OTHERS':{'1':{'batchsize':bs}}})
+
+
+SINGLE_RUN()
