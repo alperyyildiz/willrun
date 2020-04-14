@@ -8,7 +8,7 @@ import pickle
 import time
 import shutil
 import os
-import hyperopt
+import optuna
 from datetime import datetime
 from torch import optim
 from sklearn import datasets
@@ -459,7 +459,7 @@ class PARAMETERS():
 
         model = Model(P_OBJ)
         model.to(device = cuda)
-        model.optimizer = optim.Adam(model.parameters(),lr=self.DICT['OTHERS']['1']['lrate'])#,weight_decay = 0.0001 
+        model.optimizer = optim.Adam(model.parameters(),lr=self.DICT['OTHERS']['1']['lrate'],weight_decay = 0.001)#,weight_decay = 0.0001 
         repr(model)
         minloss = model.fit()
         
@@ -467,12 +467,7 @@ class PARAMETERS():
         
         torch.cuda.empty_cache()
         P_OBJ.EXPERIMENT_NUMBER = P_OBJ.EXPERIMENT_NUMBER + 1
-        return {
-            'loss': minloss,
-            'status': STATUS_OK,
-            'attachments':
-                {'time_module': pickle.dumps(time.time)}
-              }
+        return minloss
 
 
     def plotz(self):
@@ -611,12 +606,12 @@ class Model(nn.Module, PARAMETERS):
             if epoch % 20 == 0 and epoch != 0:
                 is_best = val_loss < BEST_CHECKPOINT_LOSS
                 BEST_CHECKPOINT_LOSS = min(val_loss,BEST_CHECKPOINT_LOSS)
-                self.save_checkpoint({
-                                  'epoch': epoch + 1,
-                                  'state_dict': self.state_dict(),
-                                  'BEST_CHECKPOINT_LOSS': BEST_CHECKPOINT_LOSS,
-                                  'optimizer' : self.optimizer.state_dict(),
-                                }, is_best,epoch)
+                #self.save_checkpoint({
+                 #                 'epoch': epoch + 1,
+                  #                'state_dict': self.state_dict(),
+                   #               'BEST_CHECKPOINT_LOSS': BEST_CHECKPOINT_LOSS,
+                    #              'optimizer' : self.optimizer.state_dict(),
+                     #           }, is_best,epoch)
 
             is_best = val_loss < BEST_LOSS
             BEST_LOSS = min(val_loss,BEST_LOSS)
@@ -655,34 +650,24 @@ def SET_EXPERIMENT(PARAMS_TO_CHANGE=None):
 
 
 
-def SINGLE_RUN():
+def SINGLE_RUN(trial):
     OTHERS  =  {
                     'windowlength': 100,
                     'out_size': 3,
                     'period': 24,
                     'lrate': 0.003,
                     'batchsize': 32,
-                    'epoch': 2000
+                    'epoch': 1000
                     }
 
 
     DICT =  { 'CONV': {
-                        '1': {'FIL': 64, 
-                              'KER': 14,
-                              'stride': 1,
-                              'padding': 0,
-                              'dilation': 4,
-                              'dropout': [True, 0.5],
-                              'batchnorm': False,
-                              'activation_function': [True, 'relu'],
-                              'pooling': [False, 0, None]
-                            },
-                       '2': {'FIL': 32, 
-                              'KER': 4,
+                        '1': {'FIL': 128, 
+                              'KER': 16,
                               'stride': 1,
                               'padding': 0,
                               'dilation': 1,
-                              'dropout': [True, 0.5],
+                              'dropout': [True, 0.7],
                               'batchnorm': False,
                               'activation_function': [True, 'relu'],
                               'pooling': [False, 0, None]
@@ -695,14 +680,11 @@ def SINGLE_RUN():
             'flatten': {'1': {'nofilter':0 , 'nonothing':0 }},
 
             'DENSE': {
-                      '1': {'FIL': 128,
-                            'dropout' : [True,0.6],
+                      '1': {'FIL': 256,
+                            'dropout' : [True,0.7],
                             'activation_function': [True, 'relu']
                           },
-                      '2': {'FIL': 96,
-                            'dropout' : [True,0.6],
-                            'activation_function': [True, 'relu']
-                          },
+                      
 
                       '3': {'FIL':OTHERS['out_size'],
                             'dropout' : [False,0],
@@ -727,9 +709,18 @@ def SINGLE_RUN():
 
     P_OBJ.preprocess()
 
-    for i in range(1,30):
-        lr = 0.0002 * i
-        change = {'OTHERS':{'1':{'lrate':lr,
-                             }}}
-        P_OBJ.GET_MODEL(change)
-SINGLE_RUN()
+    learning_rate = trial.suggest_loguniform('learning_rate', 1e-6, 1e-2)
+    ker = trial.suggest_int('kernel', 12, 32)
+    dilation = trial.suggest_int('dilat',1,4)
+
+    change = { 
+              'CONV': {'1': {'KER': ker,
+                             'dilation': dilation}},
+              'OTHERS':{'1':{'lrate':learning_rate,
+                          }}}
+    minloss = P_OBJ.GET_MODEL(change)
+
+study = optuna.create_study()
+
+study.optimize(SINGLE_RUN, n_trials=100)
+
