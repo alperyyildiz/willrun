@@ -9,3 +9,4 @@ pip install datetime
 pip install statsmodels
 pip install optuna
 pip install pickle-mixin
+pip install statsmodels
