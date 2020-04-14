@@ -7,5 +7,5 @@ pip install xlrd
 pip install scikit-learn
 pip install datetime
 pip install statsmodels
-pip install hyperopt
+pip install optuna
 pip install pickle-mixin
